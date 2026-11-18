@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MooSynth – Milk Biosynthesis Lab</title>
+<style>
+:root{--orange:#FF9F1C;--green:#8DC63F;--lime:#C9F27A;--olive:#3E3A2D;--ink:#2a271d;--white:#fffef8;--red:#d9534f}
+*{box-sizing:border-box}
+body{margin:0;font-family:"Segoe UI",system-ui,sans-serif;background:var(--lime);color:var(--ink)}
+header{background:var(--olive);color:#fff;padding:14px 20px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+header h1{margin:0;font-size:1.5rem;letter-spacing:.5px}
+header h1 span{color:var(--orange)}
+header p{margin:0;color:var(--lime);font-size:.95rem}
+nav{display:flex;gap:6px;background:var(--orange);padding:8px 12px;flex-wrap:wrap;position:sticky;top:0;z-index:5}
+nav button{border:0;background:var(--white);color:var(--olive);padding:9px 14px;border-radius:20px;font-weight:700;cursor:pointer;font-size:.95rem}
+nav button.active{background:var(--olive);color:#fff}
+main{max-width:980px;margin:0 auto;padding:18px}
+section{display:none}
+section.show{display:block}
+.card{background:var(--white);border-radius:14px;padding:18px 20px;margin-bottom:16px;box-shadow:0 2px 6px rgba(0,0,0,.12);border-left:8px solid var(--green)}
+.card.o{border-left-color:var(--orange)}
+h2{margin-top:0;color:var(--olive)}
+h3{color:#b36b00;margin-bottom:6px}
+.btn{background:var(--green);color:#fff;border:0;border-radius:10px;padding:10px 18px;font-weight:700;cursor:pointer;font-size:1rem}
+.btn.o{background:var(--orange)}
+.btn:disabled{opacity:.5;cursor:default}
+.tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+.tabs button{border:2px solid var(--green);background:#fff;border-radius:10px;padding:7px 12px;cursor:pointer;font-weight:600}
+.tabs button.on{background:var(--green);color:#fff}
+.pane{display:none}.pane.on{display:block}
+.pill{display:inline-block;background:var(--orange);color:#fff;border-radius:12px;padding:2px 10px;font-size:.85rem;font-weight:700}
+.key{background:#fff3d6;border-radius:8px;padding:8px 12px;margin:10px 0;border-left:4px solid var(--orange)}
+.flow{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:10px 0}
+.flow div{background:var(--olive);color:#fff;padding:8px 12px;border-radius:10px;font-size:.9rem}
+.flow b{color:var(--orange)}
+.steps{display:grid;gap:8px}
+.step{background:#fff;border:2px solid var(--green);border-radius:10px;padding:10px 14px;cursor:pointer;text-align:left;font-size:1rem}
+.step.done{background:var(--green);color:#fff;border-color:var(--green)}
+.step.bad{animation:sh .3s;border-color:var(--red)}
+@keyframes sh{25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media(max-width:760px){.grid2{grid-template-columns:1fr}}
+label{display:block;margin:8px 0 2px;font-weight:600}
+input[type=number],select{padding:8px;border-radius:8px;border:2px solid var(--green);width:100%;font-size:1rem}
+.out{background:var(--olive);color:#fff;border-radius:10px;padding:12px;margin-top:10px}
+.out b{color:var(--lime)}
+#camWrap{position:relative;width:100%;max-width:420px;aspect-ratio:4/3;background:#000;border-radius:14px;overflow:hidden;margin:auto}
+#cam,#ov{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transform:scaleX(-1)}
+#fingerBadge{position:absolute;right:10px;top:10px;background:var(--orange);color:#fff;font-weight:800;font-size:2rem;width:56px;height:56px;border-radius:50%;display:flex;align-items:center;justify-content:center;border:3px solid #fff}
+.opt{display:flex;gap:12px;align-items:center;background:#fff;border:3px solid var(--green);border-radius:12px;padding:12px;margin:8px 0;cursor:pointer;font-size:1.05rem;position:relative;overflow:hidden}
+.opt .n{background:var(--olive);color:#fff;border-radius:50%;width:36px;height:36px;display:flex;align-items:center;justify-content:center;font-weight:800;flex:none}
+.opt.hover{border-color:var(--orange);background:#fff3d6}
+.opt.right{background:var(--green);color:#fff}
+.opt.wrong{background:var(--red);color:#fff}
+.opt .bar{position:absolute;left:0;bottom:0;height:5px;background:var(--orange);width:0}
+.status{font-weight:700;min-height:1.4em;margin:8px 0}
+.progress{height:10px;background:#ddd;border-radius:6px;overflow:hidden;margin:8px 0}
+.progress div{height:100%;background:var(--orange);width:0;transition:width .3s}
+ul{padding-left:20px}
+table{border-collapse:collapse;width:100%;font-size:.95rem}
+td,th{border:1px solid #ccc;padding:6px 8px;text-align:left}
+th{background:var(--olive);color:#fff}
+.hand{font-size:2rem}
+footer{text-align:center;padding:18px;color:var(--olive);font-size:.85rem}
+</style>
+</head>
+<body>
+<header>
+  <div style="font-size:2.2rem">🐄</div>
+  <div><h1>Moo<span>Synth</span></h1><p>From grass to glass: learn how milk is made, with the wave of a hand.</p></div>
+</header>
+<nav id="nav">
+  <button data-s="home" class="active">🏠 Start</button>
+  <button data-s="notes">📖 Notes</button>
+  <button data-s="act">🧪 Activities</button>
+  <button data-s="quiz">✋ Gesture Quiz</button>
+  <button data-s="help">🛠 Help</button>
+</nav>
+<main>
+
+<!-- HOME -->
+<section id="home" class="show">
+  <div class="card o">
+    <h2>Welcome to MooSynth</h2>
+    <p><b>Target audience:</b> food science and dairy technology students, dairy-plant trainees and culinary students who need to understand where milk comes from before they process it.</p>
+    <p>Milk biosynthesis is hard to learn from slides: it involves a chain of invisible steps in the udder. MooSynth turns it into short notes, hands-on activities and a quiz you answer with your <b>fingers</b>, using your webcam.</p>
+    <h3>How to use (3 steps)</h3>
+    <ol>
+      <li>Read the <b>Notes</b> (about 10 minutes).</li>
+      <li>Practise in <b>Activities</b>: order the milk pathway and try the milking-cycle calculator.</li>
+      <li>Take the <b>Gesture Quiz</b>: hold up 1 to 4 fingers to choose answer 1 to 4.</li>
+    </ol>
+    <div class="key">🔒 Your camera video is processed only inside your browser. Nothing is recorded or uploaded.</div>
+  </div>
+  <div class="card">
+    <h3>Learning outcomes</h3>
+    <ul>
+      <li>Describe the three stages of milk biosynthesis: digestion, synthesis and excretion.</li>
+      <li>Name the parts of the alveolus and the role of the organelles in a secretory cell.</li>
+      <li>Explain the role of oxytocin in milk let-down.</li>
+      <li>Calculate ages and stages in a cow's lactation cycle.</li>
+    </ul>
+  </div>
+</section>
+
+<!-- NOTES -->
+<section id="notes">
+  <div class="card">
+    <h2>Interactive Notes: Milk Biosynthesis</h2>
+    <div class="tabs" id="noteTabs">
+      <button data-p="n1" class="on">1. Cow milking</button>
+      <button data-p="n2">2. Digestion</button>
+      <button data-p="n3">3. Synthesis</button>
+      <button data-p="n4">4. Excretion</button>
+      <button data-p="n5">5. Milk properties</button>
+    </div>
+
+    <div class="pane on" id="n1">
+      <h3>Lactation and the milking cycle</h3>
+      <ul>
+        <li>Milk is the source of nutrients and immune protection for the calf. Gestation in a cow is <b>9 months</b>.</li>
+        <li>At parturition the udder secretes <b>colostrum</b>: yellowish, salty, very high in serum protein, rich in antibodies. It returns to normal milk after <b>72 hours</b>.</li>
+        <li>The <b>lactation period</b> is about <b>305 days</b> and yields 9,000 to 10,000 kg or more, while a calf needs only about 1,000 kg.</li>
+        <li>Peak yield is <b>2 to 3 months</b> after calving (40 to 50 L/day). A cow can have 5 to 6 cycles, with a peak in the 3rd.</li>
+      </ul>
+      <table>
+        <tr><th>Event</th><th>Typical timing</th></tr>
+        <tr><td>Heifer first inseminated</td><td>15 months</td></tr>
+        <tr><td>First calf born (milking starts)</td><td>24 months (15 + 9)</td></tr>
+        <tr><td>Cow in heat again</td><td>1 to 2 months after calving</td></tr>
+        <tr><td>Re-insemination</td><td>about 3 months after calving</td></tr>
+        <tr><td>Dried off</td><td>60 days before next calving</td></tr>
+      </table>
+    </div>
+
+    <div class="pane" id="n2">
+      <h3>Stage 1: Digestion</h3>
+      <p>Milk components come mostly from digested food. Enzymes break food into simple, soluble pieces:</p>
+      <div class="flow">
+        <div>🌿 Food</div><b>→ enzymes →</b>
+        <div>Monosaccharides</div><div>Small peptides &amp; amino acids</div><div>Fatty acids &amp; monoglycerides</div>
+        <b>→ blood →</b><div>Mammary gland</div>
+      </div>
+      <ul>
+        <li>These nutrients, plus salts, glycerol and organic acids, are carried by the blood to all organs, including the mammary gland (the udder).</li>
+        <li>They provide <b>energy</b> and <b>precursors</b> for making milk proteins and lipids.</li>
+      </ul>
+      <div class="key">💡 It takes <b>400 to 800 L of blood</b> to deliver the components for <b>1 L of milk</b>.</div>
+    </div>
+
+    <div class="pane" id="n3">
+      <h3>Stage 2: Synthesis in the alveolus</h3>
+      <ul>
+        <li>The <b>alveolus</b> is the milk-producing unit, lined with a single layer of <b>epithelial secretory cells</b>, surrounded by <b>myoepithelial cells</b> and blood capillaries.</li>
+        <li>Inside the cell, the <b>endoplasmic reticulum (ER)</b> and its ribosomes make milk components. <b>Mitochondria</b> supply the energy.</li>
+        <li>The <b>Golgi apparatus</b> packs the components into <b>vesicles</b>.</li>
+        <li>Vesicles cross the cytoplasm and the <b>apical plasma membrane</b> and are released into the <b>lumen</b>, the central storage area.</li>
+        <li>The lumen connects through ducts to the <b>cistern</b>.</li>
+      </ul>
+      <div class="flow">
+        <div>Blood nutrients</div><b>→</b><div>ER + ribosomes (mitochondria = energy)</div><b>→</b><div>Golgi</div><b>→</b><div>Vesicles</div><b>→</b><div>Lumen</div><b>→</b><div>Ducts</div><b>→</b><div>Cistern</div>
+      </div>
+    </div>
+
+    <div class="pane" id="n4">
+      <h3>Stage 3: Excretion (milk let-down)</h3>
+      <ul>
+        <li>Milk does <b>not</b> leave the udder spontaneously. The alveoli must <b>contract</b> through the muscle tissue (myoepithelial cells) around them.</li>
+        <li>Contraction is triggered by the hormone <b>oxytocin</b>, released into the blood when the <b>teats are stimulated</b> by the suckling calf or the milker.</li>
+        <li>Milk flows from the lumen through small ducts into larger ones to the cistern, then out through the teat.</li>
+        <li>A cow has <b>four teats</b> and four separate mammary glands called udder <b>quarters</b>.</li>
+      </ul>
+      <div class="key">💡 Milk is “filtered blood”: the udder builds milk from blood nutrients.</div>
+    </div>
+
+    <div class="pane" id="n5">
+      <h3>Key properties of milk</h3>
+      <table>
+        <tr><th>Property</th><th>Value / idea</th></tr>
+        <tr><td>pH</td><td>about 6.7 at room temperature</td></tr>
+        <tr><td>Density</td><td>about 1029 kg/m³ at 20°C</td></tr>
+        <tr><td>Viscosity</td><td>about twice that of water</td></tr>
+        <tr><td>Osmotic pressure</td><td>about 700 kPa</td></tr>
+        <tr><td>Freezing-point depression</td><td>about 0.53 K</td></tr>
+        <tr><td>Water activity</td><td>about 0.995</td></tr>
+        <tr><td>Casein gels (acid)</td><td>at pH about 4.6</td></tr>
+      </table>
+      <ul>
+        <li><b>Solution and dispersion:</b> fat globules (with a protective membrane) and casein micelles are dispersed in water. Creaming by gravity or centrifugation gives cream and skim milk.</li>
+        <li><b>Nutrition:</b> a near-complete food but poor in iron and not high in vitamin C, and it lacks fibre.</li>
+        <li><b>Bacteria:</b> nutrient-rich, so many bacteria grow in milk, especially at high temperatures.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ACTIVITIES -->
+<section id="act">
+  <div class="card o">
+    <h2>Activity 1: Build the Milk Pathway</h2>
+    <p>Tap the steps in the correct order, from first to last.</p>
+    <div class="progress"><div id="pathBar"></div></div>
+    <div class="steps" id="pathSteps"></div>
+    <div class="status" id="pathMsg"></div>
+    <button class="btn o" id="pathReset">Shuffle &amp; restart</button>
+  </div>
+
+  <div class="card">
+    <h2>Activity 2: Milking Cycle Calculator</h2>
+    <p>Try the lecture-note style calculation. Gestation is fixed at 9 months and the cow is dried off 60 days (2 months) before calving.</p>
+    <div class="grid2">
+      <div>
+        <label>Age at first insemination (months)</label>
+        <input type="number" id="c1" value="15" min="12" max="30">
+        <label>Months after calving until re-insemination</label>
+        <input type="number" id="c2" value="3" min="1" max="6">
+        <label>Which calf? (1 to 6)</label>
+        <input type="number" id="c3" value="4" min="1" max="6">
+      </div>
+      <div class="out" id="calcOut"></div>
+    </div>
+    <p style="font-size:.9rem">Formula: calf n is born at age = first insemination + 9 + (n − 1) × (gap + 9).</p>
+  </div>
+</section>
+
+<!-- QUIZ -->
+<section id="quiz">
+  <div class="card o">
+    <h2>Gesture Quiz</h2>
+    <p>Hold up <b>1, 2, 3 or 4 fingers</b> to pick the answer. Hold the same number steady for about 1.5 seconds to lock it in.</p>
+    <div style="text-align:center;margin-bottom:10px">
+      <button class="btn" id="camBtn">📷 Start camera</button>
+      <button class="btn o" id="startQuiz">▶ Start quiz</button>
+    </div>
+    <div class="status" id="camMsg">Camera is off. You can also answer by clicking or pressing keys 1 to 4 (backup mode).</div>
+    <div class="grid2">
+      <div id="camWrap"><video id="cam" autoplay playsinline muted></video><canvas id="ov"></canvas><div id="fingerBadge">–</div></div>
+      <div id="qBox">
+        <div class="progress"><div id="qBar"></div></div>
+        <div id="qNum" class="pill">Ready</div>
+        <h3 id="qText" style="color:var(--olive)">Start the camera, then press Start quiz.</h3>
+        <div id="qOpts"></div>
+        <div class="status" id="qMsg"></div>
+      </div>
+    </div>
+  </div>
+  <div class="card" id="result" style="display:none"></div>
+</section>
+
+<!-- HELP -->
+<section id="help">
+  <div class="card o">
+    <h2>Webcam &amp; Gesture Instructions</h2>
+    <ol>
+      <li>Open the quiz tab and press <b>Start camera</b>.</li>
+      <li>Your browser will ask for camera permission. Choose <b>Allow</b>.</li>
+      <li>Wait for the message “Hand tracker ready” (the first load downloads a small model, needing internet).</li>
+      <li>Hold <b>one hand</b> in front of the camera, palm facing the camera, about 40 to 60 cm away.</li>
+      <li>Show 1, 2, 3 or 4 fingers. The orange circle shows the number the app sees. Keep it steady until the bar fills.</li>
+    </ol>
+    <table>
+      <tr><th>Gesture</th><th>Answer</th></tr>
+      <tr><td>☝️ 1 finger (index)</td><td>Option 1</td></tr>
+      <tr><td>✌️ 2 fingers</td><td>Option 2</td></tr>
+      <tr><td>🤟 3 fingers</td><td>Option 3</td></tr>
+      <tr><td>🖖 4 fingers (thumb folded)</td><td>Option 4</td></tr>
+    </table>
+  </div>
+  <div class="card">
+    <h2>Common mistakes &amp; troubleshooting</h2>
+    <ul>
+      <li><b>No camera prompt appears:</b> the page must be served over https. Open the app from its web address, not from a downloaded file inside an email or chat.</li>
+      <li><b>Permission was blocked:</b> click the padlock or camera icon in the address bar, set Camera to Allow, then reload.</li>
+      <li><b>Inside Google Sites the camera does not start:</b> use the “Open full screen” link on the landing page, which opens the app in its own tab where permissions work.</li>
+      <li><b>Count keeps jumping:</b> improve lighting (face a window or lamp), use a plain background, keep the hand still and fully in frame.</li>
+      <li><b>Wrong count with the thumb:</b> for 4, fold the thumb across your palm. For 1, curl the other fingers firmly.</li>
+      <li><b>Camera used by another app:</b> close Zoom, Teams or other tabs using the camera.</li>
+      <li><b>Slow or laggy:</b> close other tabs; use Chrome or Edge on a laptop.</li>
+      <li><b>Backup mode:</b> if gestures fail (for example during a demo), press keys <b>1 to 4</b> or click an option.</li>
+    </ul>
+  </div>
+</section>
+</main>
+<footer>MooSynth · Milk Biosynthesis module · FS147903 Dairy Technology · Built with AI-assisted (vibe) coding and MediaPipe Hand Landmarker</footer>
+
+<script type="module">
+const $ = s => document.querySelector(s);
+const $$ = s => [...document.querySelectorAll(s)];
+
+/* ---------- navigation ---------- */
+$$("#nav button").forEach(b => b.onclick = () => {
+  $$("#nav button").forEach(x => x.classList.toggle("active", x === b));
+  $$("main section").forEach(s => s.classList.toggle("show", s.id === b.dataset.s));
+  window.scrollTo({top:0,behavior:"smooth"});
+});
+$$("#noteTabs button").forEach(b => b.onclick = () => {
+  $$("#noteTabs button").forEach(x => x.classList.toggle("on", x === b));
+  $$(".pane").forEach(p => p.classList.toggle("on", p.id === b.dataset.p));
+});
+
+/* ---------- Activity 1: pathway ---------- */
+const PATH = [
+  "Enzymes digest food into simple nutrients",
+  "Nutrients are absorbed into the blood",
+  "Blood delivers nutrients to the mammary gland (400–800 L per 1 L milk)",
+  "ER and ribosomes synthesize milk components (mitochondria supply energy)",
+  "Golgi apparatus packs components into vesicles",
+  "Vesicles release components into the lumen of the alveolus",
+  "Teat stimulation releases oxytocin; alveoli contract",
+  "Milk flows through ducts to the cistern and out of the teat"
+];
+let pathNext = 0;
+function shuffle(a){a=[...a];for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
+function buildPath(){
+  pathNext = 0; $("#pathBar").style.width="0"; $("#pathMsg").textContent="";
+  const box = $("#pathSteps"); box.innerHTML="";
+  shuffle(PATH.map((t,i)=>({t,i}))).forEach(o=>{
+    const b=document.createElement("button"); b.className="step"; b.textContent=o.t;
+    b.onclick=()=>{
+      if(b.classList.contains("done")) return;
+      if(o.i===pathNext){
+        b.classList.add("done"); pathNext++; b.textContent=`${pathNext}. ${o.t}`;
+        $("#pathBar").style.width=(pathNext/PATH.length*100)+"%";
+        if(pathNext===PATH.length) $("#pathMsg").textContent="🎉 Perfect! You rebuilt the milk pathway.";
+      } else { b.classList.remove("bad"); void b.offsetWidth; b.classList.add("bad"); $("#pathMsg").textContent="Not yet – think about what happens next."; }
+    };
+    box.appendChild(b);
+  });
+}
+$("#pathReset").onclick=buildPath; buildPath();
+
+/* ---------- Activity 2: calculator ---------- */
+function calc(){
+  const f=+$("#c1").value, g=+$("#c2").value, n=Math.max(1,Math.min(6,+$("#c3").value||1));
+  const calf = f + 9 + (n-1)*(g+9);
+  const fmt = m => `${Math.floor(m/12)} years ${m%12} months (${m} months)`;
+  $("#calcOut").innerHTML =
+   `Calf <b>${n}</b> is born at <b>${fmt(calf)}</b><br>`+
+   `Dried off (2 months before) at <b>${fmt(calf-2)}</b><br>`+
+   `Six months pregnant with it at <b>${fmt(calf-3)}</b><br>`+
+   `Inseminated for it at <b>${fmt(calf-9)}</b>`;
+}
+["#c1","#c2","#c3"].forEach(s=>$(s).addEventListener("input",calc)); calc();
+
+/* ---------- Quiz data ---------- */
+const QS = [
+ {q:"What is the yellowish, antibody-rich fluid secreted at parturition?",o:["Colostrum","Skim milk","Whey","Buttermilk"],a:0},
+ {q:"Which hormone causes the alveoli to contract for milk let-down?",o:["Insulin","Oxytocin","Adrenaline","Thyroxine"],a:1},
+ {q:"Which organelle supplies energy to the endoplasmic reticulum?",o:["Golgi apparatus","Nucleus","Mitochondria","Lumen"],a:2},
+ {q:"About how much blood is needed to deliver the components for 1 L of milk?",o:["4–8 L","40–80 L","4,000–8,000 L","400–800 L"],a:3},
+ {q:"What is the milk-producing unit of the mammary gland?",o:["Cistern","Alveolus","Teat","Duct"],a:1},
+ {q:"At about what pH does casein aggregate and form a gel?",o:["6.7","4.6","5.5","3.0"],a:1},
+ {q:"Which structure packs milk components into vesicles?",o:["Golgi apparatus","Ribosome","Mitochondrion","Myoepithelial cell"],a:0},
+ {q:"A heifer is first inseminated at 15 months. At what age is her first calf born?",o:["20 months","22 months","27 months","24 months"],a:3}
+];
+
+/* ---------- Camera + hand tracking ---------- */
+let landmarker=null, stream=null, running=false, fingers=0, lastCount=-1, stableSince=0, lastVideoTime=-1;
+const video=$("#cam"), ov=$("#ov"), ctx=ov.getContext("2d");
+const dist=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
+
+function countFingers(lm){
+  const w=lm[0]; let c=0;
+  [[8,6],[12,10],[16,14],[20,18]].forEach(([tip,pip])=>{ if(dist(lm[tip],w) > dist(lm[pip],w)*1.12) c++; });
+  const thumbOut = dist(lm[4],lm[17]) > dist(lm[3],lm[17])*1.05 && dist(lm[4],lm[5])>dist(lm[3],lm[5])*0.9 && dist(lm[4],lm[9])>0.08;
+  return {c, thumb:thumbOut};
+}
+function decide(lm){
+  const {c,thumb}=countFingers(lm);
+  // options 1-4 are mapped to finger counts 1-4; thumb is ignored unless it makes the count 4/5 ambiguous
+  return Math.min(c,4) || (thumb?1:0);
+}
+
+$("#camBtn").onclick = async () => {
+  const m=$("#camMsg");
+  if(!navigator.mediaDevices?.getUserMedia){ m.textContent="Camera not supported here. Use https and Chrome/Edge, or use backup mode (keys 1–4)."; $("#startQuiz").disabled=false; return; }
+  try{
+    m.textContent="Requesting camera permission…";
+    stream = await navigator.mediaDevices.getUserMedia({video:{width:640,height:480,facingMode:"user"},audio:false});
+    video.srcObject = stream; await video.play();
+    ov.width=video.videoWidth||640; ov.height=video.videoHeight||480;
+    m.textContent="Loading hand tracker (first time needs internet)…";
+    const { HandLandmarker, FilesetResolver } = await import("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14");
+    const fs = await FilesetResolver.forVisionTasks("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm");
+    landmarker = await HandLandmarker.createFromOptions(fs,{
+      baseOptions:{modelAssetPath:"https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task"},
+      runningMode:"VIDEO", numHands:1, minHandDetectionConfidence:.6, minTrackingConfidence:.6
+    });
+    m.textContent="✅ Hand tracker ready. Show your hand, then press Start quiz.";
+    running=true; $("#startQuiz").disabled=false; loop();
+  }catch(e){
+    m.textContent="⚠️ Camera/tracker failed ("+(e.name||"error")+"). Check Help tab. Backup mode: click or press keys 1–4.";
+    $("#startQuiz").disabled=false;
+  }
+};
+
+function loop(){
+  if(!running) return;
+  if(landmarker && video.readyState>=2 && video.currentTime!==lastVideoTime){
+    lastVideoTime=video.currentTime;
+    const res=landmarker.detectForVideo(video,performance.now());
+    ctx.clearRect(0,0,ov.width,ov.height);
+    if(res.landmarks && res.landmarks.length){
+      const lm=res.landmarks[0];
+      ctx.fillStyle="#8DC63F"; ctx.strokeStyle="#FF9F1C"; ctx.lineWidth=3;
+      lm.forEach(p=>{ctx.beginPath();ctx.arc(p.x*ov.width,p.y*ov.height,4,0,7);ctx.fill()});
+      fingers=decide(lm);
+    } else fingers=0;
+    $("#fingerBadge").textContent=fingers||"–";
+    handleStable();
+  }
+  requestAnimationFrame(loop);
+}
+
+/* ---------- Quiz logic ---------- */
+let qi=-1, score=0, locked=true, answers=[], keyEnabled=false;
+const HOLD=1500;
+function handleStable(){
+  if(locked||qi<0) return;
+  const now=performance.now();
+  if(fingers>=1&&fingers<=4){
+    if(fingers!==lastCount){lastCount=fingers;stableSince=now}
+    const p=Math.min(1,(now-stableSince)/HOLD);
+    $$(".opt").forEach((o,i)=>{o.classList.toggle("hover",i===fingers-1);o.querySelector(".bar").style.width=(i===fingers-1?p*100:0)+"%"});
+    if(p>=1) answer(fingers-1);
+  } else { lastCount=-1; $$(".opt").forEach(o=>{o.classList.remove("hover");o.querySelector(".bar").style.width="0"}); }
+}
+function showQ(){
+  const q=QS[qi]; locked=false; lastCount=-1;
+  $("#qNum").textContent=`Question ${qi+1} of ${QS.length}`;
+  $("#qText").textContent=q.q; $("#qMsg").textContent="Hold up 1–4 fingers…";
+  $("#qBar").style.width=(qi/QS.length*100)+"%";
+  const box=$("#qOpts"); box.innerHTML="";
+  q.o.forEach((t,i)=>{
+    const d=document.createElement("div"); d.className="opt";
+    d.innerHTML=`<span class="n">${i+1}</span><span>${t}</span><span class="bar"></span>`;
+    d.onclick=()=>{ if(!locked) answer(i) }; box.appendChild(d);
+  });
+}
+function answer(i){
+  if(locked) return; locked=true;
+  const q=QS[qi], ok=i===q.a; if(ok) score++; answers.push({q:q.q,pick:q.o[i],right:q.o[q.a],ok});
+  const opts=$$(".opt"); opts[q.a].classList.add("right"); if(!ok) opts[i].classList.add("wrong");
+  $("#qMsg").textContent= ok ? "✅ Correct!" : `❌ Not quite. Correct: ${q.o[q.a]}`;
+  setTimeout(()=>{ qi++; if(qi>=QS.length) finish(); else showQ(); },1800);
+}
+function finish(){
+  keyEnabled=false; locked=true; $("#qBar").style.width="100%";
+  $("#qNum").textContent="Finished"; $("#qText").textContent=`Score: ${score} / ${QS.length}`;
+  $("#qOpts").innerHTML=""; $("#qMsg").textContent=score>=7?"🏆 Milk master!":score>=5?"👍 Good job – review the notes and retry.":"📖 Revisit the Notes and try again.";
+  const r=$("#result"); r.style.display="block";
+  r.innerHTML=`<h2>Review</h2><table><tr><th>#</th><th>Question</th><th>Your answer</th><th>Result</th></tr>`+
+    answers.map((a,i)=>`<tr><td>${i+1}</td><td>${a.q}</td><td>${a.pick}</td><td>${a.ok?"✅":"❌ "+a.right}</td></tr>`).join("")+`</table>`;
+}
+$("#startQuiz").onclick=()=>{ qi=0; score=0; answers=[]; keyEnabled=true; $("#result").style.display="none"; showQ(); };
+document.addEventListener("keydown",e=>{ if(keyEnabled&&!locked&&"1234".includes(e.key)) answer(+e.key-1); });
+</script>
+</body>
+</html>
